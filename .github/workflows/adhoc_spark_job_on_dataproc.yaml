@@ -44,4 +44,4 @@ jobs:
           gcloud composer environments storage dags import \
             --environment airflow-prod \
             --location asia-east1 \
-            --source dags/adhoc_spark_job.py
+            --source dags/airflow_spark_job.py
