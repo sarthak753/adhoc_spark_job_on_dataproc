@@ -1,32 +1,45 @@
-name: adhoc_spark_job_on_dataproc
+name: Dataproc Spark Job CICD
+
 on:
   push:
     branches:
       - main
 
 jobs:
-  deploy-dag:
+  upload-to-main:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
         with:
-          python-version: '3.10'
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Install dependencies
-        run: |
-          pip install apache-airflow[gcp]==2.9.0
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Import Airflow Variables
+      - name: Upload Variables JSON to GCS
         run: |
-          airflow variables --import variables.yaml
+          gsutil cp variables/main/variables.json gs://asia-east1-airflow-prod-4ad5a0d2-bucket/data/main/variables.json
 
-      - name: Deploy DAG to Composer
-        env:
-          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-          GCP_BUCKET: ${{ secrets.GCP_BUCKET }}
+      - name: Import Variables into Airflow-PROD
         run: |
-          gsutil cp dags/adhoc_spark_job_on_dataproc.py gs://$GCP_BUCKET/dags/
+          gcloud composer environments run airflow-prod \
+            --location asia-east1 \
+            variables import -- /home/airflow/gcs/data/main/variables.json
+
+      - name: Upload Spark Job to GCS
+        run: |
+          gsutil cp spark_job/emp_batch_job.py gs://asia-east1-airflow-prod-4ad5a0d2-bucket/airflow-project-1/spark-job/
+
+      - name: Upload Airflow DAG to PROD
+        run: |
+          gcloud composer environments storage dags import \
+            --environment airflow-prod \
+            --location asia-east1 \
+            --source dags/adhoc_spark_job.py

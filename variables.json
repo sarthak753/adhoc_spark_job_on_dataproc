@@ -1,9 +1,9 @@
 {
     "project_id": "banded-anvil-358303",
     "region": "asia-east1",
-    "bucket": "asia-east1-airflow-test-f872f771-bucket",
+    "bucket": "asia-east1-airflow-prod-4ad5a0d2-bucket",
     "cluster_name": "dataproc-spark-airflow-demo",
-    "spark_job_path": "gs://asia-east1-airflow-test-f872f771-bucket/airflow-project-1/spark-job/emp_batch_job.py",
+    "spark_job_path": "gs://asia-east1-airflow-prod-4ad5a0d2-bucket/airflow-project-1/spark-job/emp_batch_job.py",
     "spark.executor.instances": "4",
     "spark.executor.memory": "4g",
     "spark.executor.cores": "2",
