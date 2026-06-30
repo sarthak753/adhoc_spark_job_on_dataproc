@@ -66,7 +66,7 @@ create_cluster = DataprocCreateClusterOperator(
     dag=dag,
 )
 
-# Spark job resource parameters from Variables
+# Spark job resource parameters from Airflow Variables
 spark_job_resources_parm = {
     'spark.executor.instances': Variable.get("spark.executor.instances"),
     'spark.executor.memory': Variable.get("spark.executor.memory"),
