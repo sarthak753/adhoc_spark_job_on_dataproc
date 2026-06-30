@@ -1,0 +1,32 @@
+name: adhoc_spark_job_on_dataproc
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-dag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install apache-airflow[gcp]==2.9.0
+
+      - name: Import Airflow Variables
+        run: |
+          airflow variables --import variables.yaml
+
+      - name: Deploy DAG to Composer
+        env:
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+          GCP_BUCKET: ${{ secrets.GCP_BUCKET }}
+        run: |
+          gsutil cp dags/adhoc_spark_job_on_dataproc.py gs://$GCP_BUCKET/dags/
