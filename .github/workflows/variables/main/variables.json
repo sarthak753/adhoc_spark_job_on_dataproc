@@ -1,0 +1,13 @@
+{
+    "project_id": "banded-anvil-358303",
+    "region": "asia-east1",
+    "bucket": "asia-east1-airflow-prod-4ad5a0d2-bucket",
+    "cluster_name": "dataproc-spark-airflow-demo",
+    "spark_job_path": "gs://asia-east1-airflow-prod-4ad5a0d2-bucket/airflow-project-1/spark-job/emp_batch_job.py",
+    "spark.executor.instances": "4",
+    "spark.executor.memory": "4g",
+    "spark.executor.cores": "2",
+    "spark.driver.memory": "2g",
+    "spark.driver.cores": "2",
+    "salary_threshold": "50000"
+}
