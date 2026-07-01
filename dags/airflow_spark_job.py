@@ -1,14 +1,9 @@
 from datetime import timedelta
 from airflow import DAG
-from airflow.providers.google.cloud.operators.dataproc import (
-    DataprocCreateClusterOperator,
-    DataprocSubmitJobOperator,
-    DataprocDeleteClusterOperator
-)
+from airflow.providers.google.cloud.operators.dataproc import DataprocSubmitJobOperator
 from airflow.utils import timezone
 from airflow.models import Variable
-from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
-from airflow.utils.dates import days_ago
+from airflow.providers.google.cloud.sensors.gcs import GCSObjectsWithPrefixExistenceSensor
 
 default_args = {
     'owner': 'airflow',
@@ -21,9 +16,9 @@ default_args = {
 }
 
 dag = DAG(
-    'adhoc_spark_job_on_dataproc',
+    'adhoc_spark_job_serverless',
     default_args=default_args,
-    description='A DAG to setup dataproc and run Spark job on that',
+    description='Run Spark job on Dataproc Serverless',
     schedule=None,  # Trigger manually or on-demand
     catchup=False,
     tags=['dev'],
@@ -33,52 +28,20 @@ dag = DAG(
 PROJECT_ID = Variable.get("project_id")
 REGION = Variable.get("region")
 BUCKET = Variable.get("bucket")
-CLUSTER_NAME = Variable.get("cluster_name")
 SPARK_JOB_PATH = Variable.get("spark_job_path")
 
-# Define cluster config (can also be moved to variables.yaml if desired)
-CLUSTER_CONFIG = {
-    'master_config': {
-        'num_instances': 1,
-        'machine_type_uri': 'n1-standard-2',
-        'disk_config': {
-            'boot_disk_type': 'pd-standard',
-            'boot_disk_size_gb': 30
-        }
-    },
-    'worker_config': {
-        'num_instances': 2,
-        'machine_type_uri': 'n1-standard-2',
-        'disk_config': {
-            'boot_disk_type': 'pd-standard',
-            'boot_disk_size_gb': 30
-        }
-    },
-    'software_config': {
-        'image_version': '2.2.26-debian12'
-    }
-}
-file_sensor_task = GCSObjectExistenceSensor(
+# Sensor to check files exist
+file_sensor_task = GCSObjectsWithPrefixExistenceSensor(
     task_id='file_sensor_task',
-    bucket=Variable.get("bucket"),  # Replace with your GCS bucket name
-    object='data/employee.csv',  # Replace with your daily CSV file path
-    object1='data/department.csv',  # Replace with your daily CSV file path
-    poke_interval=300,  # Poke every 10 seconds
-    timeout=43200,  # Maximum poke duration of 12 hours
+    bucket=BUCKET,
+    prefix='data/',
+    poke_interval=300,
+    timeout=43200,
     mode='poke',
     dag=dag,
 )
 
-create_cluster = DataprocCreateClusterOperator(
-    task_id='create_dataproc_cluster',
-    cluster_name=CLUSTER_NAME,
-    project_id=PROJECT_ID,
-    region=REGION,
-    cluster_config=CLUSTER_CONFIG,
-    dag=dag,
-)
-
-# Spark job resource parameters from Airflow Variables
+# Spark job resource parameters
 spark_job_resources_parm = {
     'spark.executor.instances': Variable.get("spark.executor.instances"),
     'spark.executor.memory': Variable.get("spark.executor.memory"),
@@ -87,14 +50,14 @@ spark_job_resources_parm = {
     'spark.driver.cores': Variable.get("spark.driver.cores"),
     "spark.bucket.name": Variable.get("bucket"),
     "spark.salary.threshold": Variable.get("salary_threshold"),
-
 }
 
+# Submit job directly to Dataproc Serverless
 submit_pyspark_job = DataprocSubmitJobOperator(
-    task_id='submit_pyspark_job_on_dataproc',
+    task_id='submit_pyspark_job_serverless',
     job={
         "reference": {"project_id": PROJECT_ID},
-        "placement": {"cluster_name": CLUSTER_NAME},
+        "placement": {"region": REGION},  # serverless placement
         "pyspark_job": {
             "main_python_file_uri": SPARK_JOB_PATH,
             "properties": spark_job_resources_parm,
@@ -105,13 +68,4 @@ submit_pyspark_job = DataprocSubmitJobOperator(
     dag=dag,
 )
 
-delete_cluster = DataprocDeleteClusterOperator(
-    task_id='delete_dataproc_cluster',
-    project_id=PROJECT_ID,
-    cluster_name=CLUSTER_NAME,
-    region=REGION,
-    trigger_rule='all_done',
-    dag=dag,
-)
-
-file_sensor_task>>create_cluster >> submit_pyspark_job >> delete_cluster
+file_sensor_task >> submit_pyspark_job
