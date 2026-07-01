@@ -1,17 +1,16 @@
 from pyspark.sql import SparkSession
-from airflow.models import Variable
 
 def process_data():
     spark = SparkSession.builder.appName("GCPDataprocJob").getOrCreate()
 
-    # Define your GCS bucket and paths from Airflow Variables
-    bucket = Variable.get("bucket")
+    # Read bucket name and salary threshold from Spark configs
+    bucket = spark.conf.get("spark.bucket.name")
+    salary_threshold = int(spark.conf.get("spark.salary.threshold", "50000"))
+
+    # Define paths dynamically
     emp_data_path = f"gs://{bucket}/data/employee.csv"
     dept_data_path = f"gs://{bucket}/data/department.csv"
     output_path = f"gs://{bucket}/output"
-
-    # Salary threshold from Airflow Variables
-    salary_threshold = int(Variable.get("salary_threshold"))
 
     # Read datasets
     employee = spark.read.csv(emp_data_path, header=True, inferSchema=True)

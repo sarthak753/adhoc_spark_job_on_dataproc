@@ -73,6 +73,9 @@ spark_job_resources_parm = {
     'spark.executor.cores': Variable.get("spark.executor.cores"),
     'spark.driver.memory': Variable.get("spark.driver.memory"),
     'spark.driver.cores': Variable.get("spark.driver.cores"),
+    "spark.bucket.name": Variable.get("bucket"),
+    "spark.salary.threshold": Variable.get("salary_threshold"),
+
 }
 
 submit_pyspark_job = DataprocSubmitJobOperator(

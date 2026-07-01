@@ -8,6 +8,5 @@
     "spark.executor.memory": "4g",
     "spark.executor.cores": "2",
     "spark.driver.memory": "2g",
-    "spark.driver.cores": "2",
-    "salary_threshold": "50000"
+    "spark.driver.cores": "2"
 }
