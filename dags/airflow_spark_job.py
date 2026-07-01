@@ -7,6 +7,8 @@ from airflow.providers.google.cloud.operators.dataproc import (
 )
 from airflow.utils import timezone
 from airflow.models import Variable
+from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
+from airflow.utils.dates import days_ago
 
 default_args = {
     'owner': 'airflow',
