@@ -56,6 +56,16 @@ CLUSTER_CONFIG = {
         'image_version': '2.2.26-debian12'
     }
 }
+file_sensor_task = GCSObjectExistenceSensor(
+    task_id='file_sensor_task',
+    bucket=Variable.get("bucket"),  # Replace with your GCS bucket name
+    object='data/employee.csv',  # Replace with your daily CSV file path
+    object1='data/department.csv',  # Replace with your daily CSV file path
+    poke_interval=300,  # Poke every 10 seconds
+    timeout=43200,  # Maximum poke duration of 12 hours
+    mode='poke',
+    dag=dag,
+)
 
 create_cluster = DataprocCreateClusterOperator(
     task_id='create_dataproc_cluster',
@@ -102,4 +112,4 @@ delete_cluster = DataprocDeleteClusterOperator(
     dag=dag,
 )
 
-create_cluster >> submit_pyspark_job >> delete_cluster
+file_sensor_task>>create_cluster >> submit_pyspark_job >> delete_cluster
